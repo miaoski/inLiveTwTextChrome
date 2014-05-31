@@ -221,6 +221,7 @@ function loadEvents() {
     url: 'https://livelink.firebaseio.com/event/.json',
     type: 'GET',
     dataType: 'json',
+    cache: false,
     success: updateEvent,
     error: function(e) {
       debugMessage('Error reading JSON: ' + str(e));
@@ -239,6 +240,7 @@ function loadNews() {
     url: 'https://livelink.firebaseio.com/news/.json',
     type: 'GET',
     dataType: 'json',
+    cache: false,
     success: updateNews,
     error: function(e) {
       debugMessage('Error reading JSON: ' + str(e));
