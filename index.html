@@ -137,8 +137,8 @@ function updateEvent(data) {
     var x = data[id];
     eventQueue.push(
       x['title'] + '<br>\n' +
-      x['location'] + '<br>\n' +
-      '<font size="20px">'+simpleDateFormatter(x['start'])+'</font>');
+      '<span style="font-size:32px;">'+x['location'] + '</span><br>\n' +
+      '<span style="font-size:24px;">'+simpleDateFormatter(x['start'])+'</span>');
   }
   update();
   setInterval(update, 5000);
