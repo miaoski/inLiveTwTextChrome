@@ -23,8 +23,6 @@ html, body, #wrapper {
   font-family: "Arial", Arial, sans-serif;
   font-size: 40px;
   font-weight: normal;
-  display: block;
-  text-align: left;
 }
 .border {
     border: 2px solid #cccccc;
@@ -120,8 +118,6 @@ function sendMessage(message) {
 
 function debugMessage(message) {
   console.log(message);
-  var dw = document.getElementById("debugmessage");
-  dw.innerHTML += '\n' + JSON.stringify(message);
 };
 
 //
@@ -142,7 +138,7 @@ function updateEvent(data) {
     eventQueue.push(
       x['title'] + '<br>\n' +
       x['location'] + '<br>\n' +
-      simpleDateFormatter(x['start']));
+      '<font size="20px">'+simpleDateFormatter(x['start'])+'</font>');
   }
   update();
   setInterval(update, 5000);
@@ -179,12 +175,6 @@ function loadEvents() {
     </td>
   </tr>
   </table>  
-
-  <!-- Debbugging output -->
-  <div style="margin:10px; visibility:display;">
-    <textarea rows="20" cols="70" id="debugmessage">
-    </textarea>
-  </div>
 
 <script type="text/javascript">
 loadEvents();
