@@ -23,6 +23,7 @@ html, body, #wrapper {
   font-family: "Arial", Arial, sans-serif;
   font-size: 40px;
   font-weight: normal;
+  text-align: left;
 }
 .border {
     border: 2px solid #cccccc;
@@ -145,7 +146,7 @@ function updateEvent(data) {
       '<span style="font-size:24px;">'+simpleDateFormatter(x['start'])+'</span>'});
   }
 
-  eventQueue.sort(function (a, b) {	// ascendant order
+  eventQueue.sort(function (a, b) { // ascendant order
     if(a['dt'] < b['dt']) return -1;
     if(a['dt'] > b['dt']) return 1;
     return 0;
@@ -162,18 +163,42 @@ function update() {
   queuePointer++;
 }
 
+var now = Date.now();
+function newsTooOld(jsondt) {
+  // One week = too old
+  return Date.parse(jsondt) < now - 1000*86400*7;
+}
+
+function shortMessage(msg) {
+  // Show 140 characters? XDDD
+  if(msg.length > 140) {
+    return msg.slice(0, 139) + '...';
+  } else {
+    return msg;
+  }
+}
+
 function updateNews(data) {
   eventQueue = [];
-  for(var id in data) {
-    var x = data[id];
-    eventQueue.push({
-      'dt': x['datetime'],
-      'content': 
-        '<span style="font-size:24px;">' + x['message'] + '</span><br>\n' +
-	'<img src="'+x['picture']+'">'});
+  for(var reporter in data) {
+    for(var i = 0; i < data[reporter]['post'].length; i++) {
+      var x = data[reporter]['post'][i];
+      if(!newsTooOld(x['datetime'])) {
+        eventQueue.push({
+          'dt': x['datetime'],
+          'content': 
+            '<span style="font-size:16px;">' + simpleDateFormatter(x['datetime']) + '</span><br>\n' +
+            '<span style="font-size:24px;">' + shortMessage(x['message']) + '</span><br>\n' +
+            '<img src="'+x['picture']+'">'});
+      }
+    }
   }
 
-  eventQueue.sort(function (a, b) {	// ascendant order
+  if(eventQueue.length == 0) {  // When news is way too old ...
+    return false;
+  }
+
+  eventQueue.sort(function (a, b) { // ascendant order
     if(a['dt'] < b['dt']) return -1;
     if(a['dt'] > b['dt']) return 1;
     return 0;
