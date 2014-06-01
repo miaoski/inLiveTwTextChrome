@@ -6,6 +6,7 @@ https://github.com/googlecast/CastHelloText-chrome
 <!DOCTYPE html>
 <html>
   <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <style type="text/css">
       body {
         overflow:hidden;
@@ -13,8 +14,8 @@ https://github.com/googlecast/CastHelloText-chrome
       div{
         height:720PX;
         width:1280PX;
-	    padding-left: 36px; 
-	    padding-right: 36px; 
+        padding-left: 36px; 
+        padding-right: 36px; 
         text-align:center;
         border:0px solid silver;
         display: table-cell;
@@ -27,8 +28,10 @@ https://github.com/googlecast/CastHelloText-chrome
       }
       #logo {
         position: absolute;
-        top: 72;
-        left: 72;
+        top: 0;
+        left: 0;
+	padding-top: 32px;
+	padding-left: 32px;
         color: #FF0000;
         font-weight: bold;
         font-family: Helvetica;
@@ -38,9 +41,10 @@ https://github.com/googlecast/CastHelloText-chrome
     <title>inLIve.TW</title>
   </head>
   <body>
-    <span id="logo">InLiveTw</span>
+    <span id="logo">InLive.Tw</span>
     <DIV id="message">inLiveTw</DIV>
     <script type="text/javascript" src="//www.gstatic.com/cast/sdk/libs/receiver/2.0.0/cast_receiver.js"></script>
+    <script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
     <script type="text/javascript">
       window.onload = function() {
         cast.receiver.logger.setLevelValue(0);
@@ -81,8 +85,17 @@ https://github.com/googlecast/CastHelloText-chrome
         // handler for the CastMessageBus message event
         window.messageBus.onMessage = function(event) {
           console.log('Message [' + event.senderId + ']: ' + event.data);
+          if(event.data == 'cast-news') {
+            loadNews();
+          } else if(event.data == 'cast-events') {
+            loadEvents();
+          } else if(event.data == 'cast-stop') {
+            stopInterval();
+          } else {
+            displayText('Got unknown msg: ' + event.data);
+          }
           // display the message from the sender
-          displayText(event.data);
+          // displayText(event.data);
           // inform all senders on the CastMessageBus of the incoming message event
           // sender message listener will be invoked
           window.messageBus.send(event.senderId, event.data);
@@ -95,10 +108,145 @@ https://github.com/googlecast/CastHelloText-chrome
       
       // utility function to display the text message in the input field
       function displayText(text) {
-        console.log(text);
+        // console.log(text);
         document.getElementById("message").innerHTML=text;
         window.castReceiverManager.setApplicationState(text);
       };
+
+//
+// InLiveTw : ChromeCast news, events, video streaming through Chrome browser extension.
+//
+
+var eventQueue = [];
+var queuePointer = 0;
+var intervalFlag = null;
+
+function simpleDateFormatter(jsondt) {
+  var dt = jsondt.slice(0, 19).replace('T', ' ');
+  return dt;
+}
+
+function updateEvent(data) {
+  eventQueue = [];
+  for(var id in data) {
+    var x = data[id];
+    eventQueue.push({
+      'dt': x['start'],
+      'content': x['title'] + '<br>\n' +
+      '<span style="font-size:32px;">'+x['location'] + '</span><br>\n' +
+      '<span style="font-size:24px;">'+simpleDateFormatter(x['start'])+'</span>'});
+  }
+
+  eventQueue.sort(function (a, b) { // ascendant order
+    if(a['dt'] < b['dt']) return -1;
+    if(a['dt'] > b['dt']) return 1;
+    return 0;
+  });
+  queuePointer = 0;
+  update();
+  intervalFlag = setInterval(update, 5000);
+}
+
+function update() {
+  msg = eventQueue[queuePointer % eventQueue.length].content;
+  displayText(msg);
+  queuePointer++;
+}
+
+var now = Date.now();
+function newsTooOld(jsondt) {
+  // One week = too old
+  return Date.parse(jsondt) < now - 1000*86400*7;
+}
+
+function shortMessage(msg) {
+  // Show 140 characters? XDDD
+  if(msg.length > 140) {
+    return msg.slice(0, 139) + '...';
+  } else {
+    return msg;
+  }
+}
+
+function updateNews(data) {
+  eventQueue = [];
+  for(var reporter in data) {
+    for(var i = 0; i < data[reporter]['post'].length; i++) {
+      var x = data[reporter]['post'][i];
+      if(!newsTooOld(x['datetime'])) {
+        eventQueue.push({
+          'dt': x['datetime'],
+          'content': 
+            '<span style="font-size:16px;">' + simpleDateFormatter(x['datetime']) + '</span><br>\n' +
+            '<span style="font-size:24px;">' + shortMessage(x['message']) + '</span><br>\n' +
+            '<img src="'+x['picture']+'">'});
+      }
+    }
+  }
+
+  if(eventQueue.length == 0) {  // When news is way too old ...
+    return false;
+  }
+
+  eventQueue.sort(function (a, b) { // ascendant order
+    if(a['dt'] < b['dt']) return -1;
+    if(a['dt'] > b['dt']) return 1;
+    return 0;
+  });
+  queuePointer = 0;
+  update();
+  intervalFlag = setInterval(update, 5000);
+}
+
+function debugMessage(str) {
+  console.log(str);
+}
+
+function loadEvents() {
+  debugMessage('Loading events');
+  if(intervalFlag != null) {
+    debugMessage('Clear interval');
+    clearInterval(intervalFlag);
+  }
+  displayText("載入中...");
+  $.ajax({
+    url: 'https://livelink.firebaseio.com/event/.json',
+    type: 'GET',
+    dataType: 'json',
+    cache: false,
+    success: updateEvent,
+    error: function(e) {
+      displayText('Error reading JSON: ' + str(e));
+    },
+  });
+}
+
+function loadNews() {
+  debugMessage('Loading news');
+  if(intervalFlag != null) {
+    debugMessage('Clear interval');
+    clearInterval(intervalFlag);
+  }
+  displayText("載入中...");
+  $.ajax({
+    url: 'https://livelink.firebaseio.com/news/.json',
+    type: 'GET',
+    dataType: 'json',
+    cache: false,
+    success: updateNews,
+    error: function(e) {
+      displayText('Error reading JSON: ' + str(e));
+    },
+  });
+}
+
+function stopInterval() {
+  if(intervalFlag != null) {
+    debugMessage('Clear interval');
+    clearInterval(intervalFlag);
+  }
+  displayText("已停止播放");
+}
     </script>
   </body>
 </html>
