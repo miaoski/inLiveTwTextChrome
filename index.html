@@ -36,10 +36,8 @@ html, body, #wrapper {
 <script type="text/javascript" src="//www.gstatic.com/cv/js/sender/v1/cast_sender.js"></script>
 <script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
 <script type="text/javascript">
-// var applicationID = 'DAA73782';
-// var namespace = 'urn:x-cast:idv.miaoski.tw.inlivetwtext';
-var applicationID = '794B7BBF';
-var namespace = 'urn:x-cast:com.google.cast.sample.helloworld';
+var applicationID = 'DAA73782';
+var namespace = 'urn:x-cast:tw.idv.miaoski.inlivetw';
 var session = null;
 
 // 
@@ -128,6 +126,7 @@ function debugMessage(message) {
 </head>
 <body>
   <div>
+    <input type="button" id="stop" value="停止" onClick="stopInterval();" />
     <input type="button" id="event" value="事件" onClick="loadEvents();" />
     <input type="button" id="news" value="報導"  onClick="loadNews();" />
   </div>

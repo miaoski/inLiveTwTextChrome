@@ -122,3 +122,10 @@ function loadNews() {
     },
   });
 }
+
+function stopInterval() {
+  if(intervalFlag != null) {
+    debugMessage('Clear interval');
+    clearInterval(intervalFlag);
+  }
+}
