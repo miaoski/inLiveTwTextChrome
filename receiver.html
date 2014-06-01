@@ -7,27 +7,39 @@ https://github.com/googlecast/CastHelloText-chrome
 <html>
   <head>
     <style type="text/css">
-	  body {
-	    overflow:hidden;
-	  }
+      body {
+        overflow:hidden;
+      }
       div{
-	    height:720PX;
-	    width:1024PX;
-	    text-align:center;
-	    border:0px solid silver;
-	    display: table-cell;
-	    vertical-align:middle;
-	    color:#FFFFFF;
-	    background-color:#000000;
-	    font-weight:normal;
-	    font-family:Verdana, Geneva, sans-serif;
-	    font-size:40px;
-	}
+        height:720PX;
+        width:1280PX;
+	    padding-left: 36px; 
+	    padding-right: 36px; 
+        text-align:center;
+        border:0px solid silver;
+        display: table-cell;
+        vertical-align:middle;
+        color:#FFFFFF;
+        background-color:#000000;
+        font-weight:normal;
+        font-family:Verdana, Geneva, sans-serif;
+        font-size:40px;
+      }
+      #logo {
+        position: absolute;
+        top: 72;
+        left: 72;
+        color: #FF0000;
+        font-weight: bold;
+        font-family: Helvetica;
+        font-size: 12px;
+      }
     </style>
     <title>inLIve.TW</title>
   </head>
   <body>
-	<DIV id="message">inLiveTw</DIV>
+    <span id="logo">InLiveTw</span>
+    <DIV id="message">inLiveTw</DIV>
     <script type="text/javascript" src="//www.gstatic.com/cast/sdk/libs/receiver/2.0.0/cast_receiver.js"></script>
     <script type="text/javascript">
       window.onload = function() {
@@ -51,8 +63,8 @@ https://github.com/googlecast/CastHelloText-chrome
         castReceiverManager.onSenderDisconnected = function(event) {
           console.log('Received Sender Disconnected event: ' + event.data);
           if (window.castReceiverManager.getSenders().length == 0) {
-	        window.close();
-	      }
+            window.close();
+          }
         };
         
         // handler for 'systemvolumechanged' event
@@ -64,7 +76,7 @@ https://github.com/googlecast/CastHelloText-chrome
         // create a CastMessageBus to handle messages for a custom namespace
         window.messageBus =
           window.castReceiverManager.getCastMessageBus(
-              'urn:x-cast:idv.miaoski.tw.inlivetwtext');
+              'urn:x-cast:tw.idv.miaoski.inlivetw');
 
         // handler for the CastMessageBus message event
         window.messageBus.onMessage = function(event) {
