@@ -174,7 +174,6 @@ function updateEvent(data) {
 }
 
 function update() {
-  console.log('update()');
   msg = eventQueue[queuePointer % eventQueue.length].content;
   displayText(msg);
   $('#last_update').html('最後更新: ' + last_update);
