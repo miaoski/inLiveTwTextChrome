@@ -26,7 +26,7 @@ https://github.com/googlecast/CastHelloText-chrome
         font-family:Verdana, Geneva, sans-serif;
         font-size:40px;
       }
-      #logo {
+      #logo_span {
         position: absolute;
         top: 0;
         left: 0;
@@ -36,13 +36,18 @@ https://github.com/googlecast/CastHelloText-chrome
         font-weight: bold;
         font-family: Helvetica;
         font-size: 16px;
-        vertical-align:top;
+	display: inline;
+      }
+      #logo {
+	width: 32px;
+	height: 32px;
+        vertical-align:middle;
       }
     </style>
     <title>inLIve.TW</title>
   </head>
   <body>
-    <span id="logo"><img src="logo.png" width="32px" height="32px" />InLive.Tw</span>
+    <span id="logo_span"><img src="logo-black.png" id="logo" />InLive.Tw</span>
     <DIV id="message">inLiveTw</DIV>
     <script type="text/javascript" src="//www.gstatic.com/cast/sdk/libs/receiver/2.0.0/cast_receiver.js"></script>
     <script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
