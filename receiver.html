@@ -30,27 +30,34 @@ https://github.com/googlecast/CastHelloText-chrome
         position: absolute;
         top: 0;
         left: 0;
-	padding-top: 48px;
-	padding-left: 48px;
+    padding-top: 48px;
+    padding-left: 48px;
         color: #FF0000;
         font-weight: bold;
         font-family: Helvetica;
         font-size: 16px;
-	display: inline;
+    display: inline;
+      }
+      #last_update {
+        font-family: Helvetica;
+        font-size: 16px;
+        color: #FFFFFF;
+        font-weight: normal;
       }
       #logo {
-	width: 32px;
-	height: 32px;
+    width: 32px;
+    height: 32px;
         vertical-align:middle;
       }
     </style>
     <title>inLIve.TW</title>
   </head>
   <body>
-    <span id="logo_span"><img src="//googledrive.com/host/0B0MapJ-Wf54NOTJVTzNnQmRzRzA/logo-black.png" id="logo" />InLive.Tw</span>
+    <span id="logo_span"><img src="//googledrive.com/host/0B0MapJ-Wf54NOTJVTzNnQmRzRzA/logo-black.png" id="logo" />InLive.Tw <span id="last_update">(尚未載入)</span></span>
     <DIV id="message">inLiveTw</DIV>
     <script type="text/javascript" src="//www.gstatic.com/cast/sdk/libs/receiver/2.0.0/cast_receiver.js"></script>
     <script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
+    <script src="moment.min.js"></script>
     <script type="text/javascript">
       window.onload = function() {
         cast.receiver.logger.setLevelValue(0);
@@ -92,11 +99,14 @@ https://github.com/googlecast/CastHelloText-chrome
         window.messageBus.onMessage = function(event) {
           console.log('Message [' + event.senderId + ']: ' + event.data);
           if(event.data == 'cast-news') {
+            stopInterval();
             loadNews();
           } else if(event.data == 'cast-events') {
+            stopInterval();
             loadEvents();
           } else if(event.data == 'cast-stop') {
             stopInterval();
+            displayText("已停止播放");
           } else {
             displayText('Got unknown msg: ' + event.data);
           }
@@ -126,13 +136,24 @@ https://github.com/googlecast/CastHelloText-chrome
 var eventQueue = [];
 var queuePointer = 0;
 var intervalFlag = null;
+var timeoutFlag = null;
+var last_update = '';
+var updateFrequency = 5*60*1000;    // 5 min
 
 function simpleDateFormatter(jsondt) {
   var dt = jsondt.slice(0, 19).replace('T', ' ');
   return dt;
 }
 
+function setLastUpdate() {
+  var x = new Date();
+  last_update = moment().format('YYYY-MM-DD hh:mm:ss');
+}
+
 function updateEvent(data) {
+  stopInterval();
+  setLastUpdate();
+  timeoutFlag = setTimeout('loadEvents()', updateFrequency);
   eventQueue = [];
   for(var id in data) {
     var x = data[id];
@@ -149,13 +170,14 @@ function updateEvent(data) {
     return 0;
   });
   queuePointer = 0;
-  update();
   intervalFlag = setInterval(update, 5000);
 }
 
 function update() {
+  console.log('update()');
   msg = eventQueue[queuePointer % eventQueue.length].content;
   displayText(msg);
+  $('#last_update').html('最後更新: ' + last_update);
   queuePointer++;
 }
 
@@ -175,6 +197,9 @@ function shortMessage(msg) {
 }
 
 function updateNews(data) {
+  stopInterval();
+  setLastUpdate();
+  timeoutFlag = setTimeout('loadNews()', updateFrequency);
   eventQueue = [];
   for(var reporter in data) {
     for(var i = 0; i < data[reporter]['post'].length; i++) {
@@ -200,7 +225,6 @@ function updateNews(data) {
     return 0;
   });
   queuePointer = 0;
-  update();
   intervalFlag = setInterval(update, 5000);
 }
 
@@ -210,11 +234,7 @@ function debugMessage(str) {
 
 function loadEvents() {
   debugMessage('Loading events');
-  if(intervalFlag != null) {
-    debugMessage('Clear interval');
-    clearInterval(intervalFlag);
-  }
-  displayText("載入中...");
+  displayText("更新中...");
   $.ajax({
     url: 'https://livelink.firebaseio.com/event/.json',
     type: 'GET',
@@ -229,10 +249,6 @@ function loadEvents() {
 
 function loadNews() {
   debugMessage('Loading news');
-  if(intervalFlag != null) {
-    debugMessage('Clear interval');
-    clearInterval(intervalFlag);
-  }
   displayText("載入中...");
   $.ajax({
     url: 'https://livelink.firebaseio.com/news/.json',
@@ -250,8 +266,13 @@ function stopInterval() {
   if(intervalFlag != null) {
     debugMessage('Clear interval');
     clearInterval(intervalFlag);
+    intervalFlag = null;
   }
-  displayText("已停止播放");
+  if(timeoutFlag != null) {
+    debugMessage('Clear timeout');
+    clearTimeout(timeoutFlag);
+    timeoutFlag = null;
+  }
 }
     </script>
   </body>
