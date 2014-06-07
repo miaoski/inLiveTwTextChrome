@@ -110,6 +110,7 @@ https://github.com/googlecast/CastHelloText-chrome
 
         // handler for the CastMessageBus message event
         window.messageBus.onMessage = function(event) {
+          senderId = event.senderId;
           console.log('Message [' + event.senderId + ']: ' + event.data);
           if(event.data == 'cast-news') {
             stopInterval();
@@ -125,13 +126,11 @@ https://github.com/googlecast/CastHelloText-chrome
             stopInterval();
             displayText("載入直播中...");
             goLive(event.data.slice(10));
+          } else if(event.data.slice(0,12) == 'cast-seekto:') {
+            ytSeekTo(parseInt(event.data.slice(12)));
           } else {
             displayText('Got unknown msg: ' + event.data);
           }
-          // display the message from the sender
-          // displayText(event.data);
-          // inform all senders on the CastMessageBus of the incoming message event
-          // sender message listener will be invoked
           window.messageBus.send(event.senderId, event.data);
         }
 
@@ -155,6 +154,7 @@ var my_status = '';
 var updateFrequency = 5*60*1000;    // 5 min
 var ytAPIReady = false;
 var player = null;                  // YouTube player object
+var senderId = null;
 
 function displayText(text) {
   $('#message').show();
@@ -348,8 +348,18 @@ function onPlayerReady(event) {
   event.target.playVideo(); 
 }
 
+function updatePlayerStatus() {
+  var msg = 'YouTube:' +
+    player.getPlayerState() + ':' +
+    player.getDuration() + ':' +
+    player.getCurrentTime();
+  window.messageBus.send(senderId, msg);
+  if(player.getPlayerState() == YT.PlayerState.PLAYING)
+    setTimeout(updatePlayerStatus, 5000);
+}
+
 function onPlayerStateChange(event) {
-  console.log('YTPlayer state change: ' + event);
+  console.log('YTPlayer state change:' + event.data);
   if(event.data == YT.PlayerState.PLAYING) {
     $('#livevideo').show();
     $('#message').hide();
@@ -365,6 +375,7 @@ function onPlayerStateChange(event) {
   else if(event.data == YT.PlayerState.PAUSED) {
     $('#my_status').html('(暫停播映)');
   }
+  updatePlayerStatus();
 }
 
 function onPlaybackQualityChange(e) {
@@ -373,7 +384,12 @@ function onPlaybackQualityChange(e) {
 }
 
 function onPlayerError(event) {
-  console.log('YTPlayer error: ' + event);
+  console.log('YTPlayer error: ' + event.data);
+}
+
+function ytSeekTo(sec) {
+  console.log('player.seekTo():' + sec);
+  player.seekTo(sec);
 }
 
 function stopVideo() {

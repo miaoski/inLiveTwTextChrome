@@ -8,7 +8,7 @@ https://github.com/googlecast/CastHelloText-chrome
 <head>
 <title>InLiveTw - ChromeCast - Chrome</title>
 <style type="text/css">
-#status {
+.status {
   background-color: #CCC;
   font-size: 12px;
   padding-left: 2em;
@@ -37,12 +37,22 @@ https://github.com/googlecast/CastHelloText-chrome
   font-size: 12px;
   cursor: pointer;
 }
+#progress_tick {
+  font-size: 12px;
+  color: #444;
+}
+#duration {
+  font-size: 12px;
+  color: #444;
+}
 </style>
 <script type="text/javascript" src="//www.gstatic.com/cv/js/sender/v1/cast_sender.js"></script>
 <script type="text/javascript">
 var applicationID = 'DAA73782';
 var namespace = 'urn:x-cast:tw.idv.miaoski.inlivetw';
 var session = null;
+var currentMedia = null;
+var cur_status = ['', ''];
 
 // 
 // Call initialization for Cast
@@ -62,12 +72,12 @@ function initializeCastApi() {
 
 function onInitSuccess() {
   console.log("onInitSuccess");
-  $('#status').html('ChromeCast 初始化成功');
+  updateStatus(0, 'ChromeCast 初始化成功');
 }
 
 function onError(message) {
   console.log("onError: "+JSON.stringify(message));
-  $('#status').html('ChromeCast 錯誤');
+  updateStatus(0, 'ChromeCast 錯誤');
 }
 
 function onSuccess(message) {
@@ -76,18 +86,19 @@ function onSuccess(message) {
 
 function onStopAppSuccess() {
   console.log('onStopAppSuccess');
-  $('#status').html('ChromeCast 已斷開');
+  updateStatus(0, 'ChromeCast 已斷開');
+  updateStatus(1, '');
 }
 
 function launchApp() {
   console.log("launching app...");
-  $('#status').html('ChromeCast 連接中...');
+  updateStatus(0, 'ChromeCast 連接中...');
   chrome.cast.requestSession(sessionListener, onLaunchError);
 }
 
 function sessionListener(e) {
   console.log('New session ID:' + e.sessionId);
-  $('#status').html('已接上 ChromeCast.');
+  updateStatus(0, '已接上 ChromeCast.');
   session = e;
   session.addUpdateListener(sessionUpdateListener);  
   session.addMessageListener(namespace, receiverMessage);
@@ -104,21 +115,32 @@ function sessionUpdateListener(isAlive) {
 
 function receiverMessage(namespace, message) {
   console.log("receiverMessage: "+namespace+", "+message);
+  if(message.slice(0,7) == 'YouTube') {
+    console.log(message);
+    var xs = message.split(':');
+    currentMedia = {
+      'status': xs[1],
+      'duration': xs[2],
+      'current': xs[3],
+    };
+    mediaStatusUpdate();
+  }
 };
 
 function receiverListener(e) {
   if( e === 'available' ) {
     console.log("receiver found");
-    $('#status').html('請連接 ChromeCast.');
+    updateStatus(0, '請連接 ChromeCast.');
   }
   else {
     console.log("receiver list empty");
-    $('#status').html('未發現 ChromeCast.');
+    updateStatus(0, '未發現 ChromeCast.');
   }
 }
 
 function stopApp() {
-  session.stop(onStopAppSuccess, onError);
+  if(session.stop != undefined)
+    session.stop(onStopAppSuccess, onError);
 }
 
 function onLaunchError() {
@@ -197,6 +219,51 @@ function loadLive() {
     },
   });
 }
+
+function toHMS(sec) {
+  var sec = Math.floor(sec);
+  var h = Math.floor(sec / 3600);
+  var m = Math.floor((sec % 3600) / 60);
+  var s = sec % 60;
+  var str_m = m < 10? '0'+m : ''+m;
+  var str_s = s < 10? '0'+s : ''+s;
+  return h + ':' + str_m + ':' + str_s;
+}
+
+function mediaStatusUpdate() {
+  var s;
+  if(currentMedia == null)
+    return;
+  $("#progress")[0].value = parseInt(100 * currentMedia.current / currentMedia.duration);
+  $("#progress_tick").html(toHMS(currentMedia.current));
+  $("#duration").html(toHMS(currentMedia.duration));
+  if(currentMedia.status == -1) {
+    s = '尚未播放影片';
+  } else if(currentMedia.status < 4) {
+    var twstat = ['放映結束', '放映中', '暫停放映', '緩衝中'];
+    s = twstat[currentMedia.status];
+  }
+  updateStatus(1, s);
+}
+
+function updateStatus(i, s) {
+  cur_status[i] = s;
+  var s1 = (cur_status[1] == '' || cur_status[1] == undefined) ? '' : '(' + cur_status[1] + ')';
+  $('#status').html(cur_status[0] + '&nbsp;&nbsp;&nbsp;' + s1);
+}
+
+function seekMedia(pos) {
+  if(currentMedia == null)
+    return;
+  var seekto = pos * currentMedia.duration / 100;
+  console.log('pos='+pos+'; cast-seekto:' + seekto.toString());
+  sendMessage('cast-seekto:' + seekto.toString());
+}
+
+function previewSeek(pos) {
+  var seekto = pos * currentMedia.duration / 100;
+  $('#progress_tick').html(toHMS(seekto));
+}
 </script>
 <script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
 </head>
@@ -208,8 +275,11 @@ function loadLive() {
   <input type="button" id="news" value="報導"  onClick="sendMessage('cast-news');" /><br>
   <input type="button" id="stop" value="停止" onClick="sendMessage('cast-stop');" /><br>
   </div>
-  <div id="status"></div>
-  <p>直播：</p>
+  <div id="status" class="status">&nbsp;</div>
+  <p>直播：
+    <input id="progress" type="range" min="1" max="100" value="1" step="1" onMouseUp="seekMedia(this.value);" onInput="previewSeek(this.value);">
+    <span id="progress_tick"></span> / <span id="duration"></span>
+  </p>
   <div id="divlive">載入中...</div>
 <script language="JavaScript">
 loadLive();
