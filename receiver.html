@@ -227,7 +227,7 @@ function updateNews(data) {
         var content = 
           '<span style="font-size:16px;">' + simpleDateFormatter(x['datetime']) + '</span><br>\n' +
           '<span style="font-size:24px;">' + shortMessage(x['message']) + '</span><br>\n' +
-          '<img src="'+x['picture']+'">';
+          '<img src="'+x['picture']+'" class="event-photo" />';
         eventQueue.push({
           'dt': x['datetime'],
           'content': content});
