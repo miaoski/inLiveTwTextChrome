@@ -77,7 +77,6 @@ function onInitSuccess() {
 
 function onError(message) {
   console.log("onError: "+JSON.stringify(message));
-  updateStatus(0, 'ChromeCast 錯誤');
 }
 
 function onSuccess(message) {
@@ -145,6 +144,7 @@ function stopApp() {
 
 function onLaunchError() {
   console.log("launch error");
+  updateStatus(0, 'ChromeCast 錯誤');
 }
 
 function sendMessage(message) {
