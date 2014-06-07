@@ -38,7 +38,7 @@ https://github.com/googlecast/CastHelloText-chrome
         font-size: 16px;
         display: inline;
       }
-      #last_update {
+      #my_status {
         font-family: Helvetica;
         font-size: 16px;
         color: #FFFFFF;
@@ -51,6 +51,11 @@ https://github.com/googlecast/CastHelloText-chrome
       }
       #livevideo {
         display: none;
+        position: absolute;
+        top: 0;
+        left: 0;
+        padding-top: 128px;
+        padding-left: 200px;
       }
       .event-photo {
         max-height: 480px;
@@ -60,10 +65,9 @@ https://github.com/googlecast/CastHelloText-chrome
     <title>inLIve.TW</title>
   </head>
   <body>
-    <span id="logo_span"><img src="//googledrive.com/host/0B0MapJ-Wf54NOTJVTzNnQmRzRzA/logo-black.png" id="logo" />InLive.Tw <span id="last_update">(尚未載入)</span></span>
-    <DIV id="message">inLiveTw</DIV>
-    <video id="livevideo" width="1136" height="640">
-    </video>
+    <span id="logo_span"><img src="//googledrive.com/host/0B0MapJ-Wf54NOTJVTzNnQmRzRzA/logo-black.png" id="logo" />InLive.Tw <span id="my_status">(尚未載入)</span></span>
+    <div id="message">inLiveTw</div>
+    <div id="livevideo"></div>
     <script type="text/javascript" src="//www.gstatic.com/cast/sdk/libs/receiver/2.0.0/cast_receiver.js"></script>
     <script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
     <script src="//googledrive.com/host/0B0MapJ-Wf54NOTJVTzNnQmRzRzA/moment.min.js"></script>
@@ -115,6 +119,7 @@ https://github.com/googlecast/CastHelloText-chrome
             loadEvents();
           } else if(event.data == 'cast-stop') {
             stopInterval();
+            stopVideo();
             displayText("已停止播放");
           } else if(event.data.slice(0,10) == 'cast-live:') {
             stopInterval();
@@ -130,18 +135,14 @@ https://github.com/googlecast/CastHelloText-chrome
           window.messageBus.send(event.senderId, event.data);
         }
 
+        window.mediaElement = document.getElementById('livevideo');
+        window.mediaManager = new cast.receiver.MediaManager(window.mediaElement);
+
         // initialize the CastReceiverManager with an application status message
         window.castReceiverManager.start({statusText: "Application is starting"});
         console.log('Receiver Manager started');
       };
       
-      // utility function to display the text message in the input field
-      function displayText(text) {
-        // console.log(text);
-        document.getElementById("message").innerHTML=text;
-        window.castReceiverManager.setApplicationState(text);
-      };
-
 //
 // InLiveTw : ChromeCast news, events, video streaming through Chrome browser extension.
 //
@@ -150,8 +151,17 @@ var eventQueue = [];
 var queuePointer = 0;
 var intervalFlag = null;
 var timeoutFlag = null;
-var last_update = '';
+var my_status = '';
 var updateFrequency = 5*60*1000;    // 5 min
+var ytAPIReady = false;
+var player = null;                  // YouTube player object
+
+function displayText(text) {
+  $('#message').show();
+  $('#livevideo').hide();
+  document.getElementById("message").innerHTML=text;
+  window.castReceiverManager.setApplicationState(text);
+}
 
 function simpleDateFormatter(jsondt) {
   var dt = jsondt.slice(0, 19).replace('T', ' ');
@@ -160,7 +170,7 @@ function simpleDateFormatter(jsondt) {
 
 function setLastUpdate() {
   var x = new Date();
-  last_update = moment().format('YYYY-MM-DD hh:mm:ss');
+  my_status = moment().format('YYYY-MM-DD hh:mm:ss');
 }
 
 function updateEvent(data) {
@@ -196,7 +206,7 @@ function updateEvent(data) {
 function update() {
   msg = eventQueue[queuePointer % eventQueue.length].content;
   displayText(msg);
-  $('#last_update').html('最後更新: ' + last_update);
+  $('#my_status').html('最後更新: ' + my_status);
   queuePointer++;
 }
 
@@ -254,7 +264,7 @@ function debugMessage(str) {
 
 function loadEvents() {
   debugMessage('Loading events');
-  displayText("更新中...");
+  displayText("事件更新中...");
   $.ajax({
     url: 'https://livelink.firebaseio.com/event/.json',
     type: 'GET',
@@ -269,7 +279,7 @@ function loadEvents() {
 
 function loadNews() {
   debugMessage('Loading news');
-  displayText("載入中...");
+  displayText("報導載入中...");
   $.ajax({
     url: 'https://livelink.firebaseio.com/news/.json',
     type: 'GET',
@@ -293,10 +303,86 @@ function stopInterval() {
     clearTimeout(timeoutFlag);
     timeoutFlag = null;
   }
+  stopVideo();
 }
 
 function goLive(uri) {
-  // ...
+  if(!ytAPIReady) {
+    displayText("尚未載入 YouTube API");
+  } else {
+    $('#my_status').html('(載入中)');
+    if(player == null) {
+      console.log('new YT.Player():' + uri);
+      player = new YT.Player('livevideo', {
+        height: '480',
+        width: '853',     // FIXME: Default 16:9, but not sure
+        videoId: uri,
+        playerVars: { 'controls': 0, 'origin': 'googledrive.com' },
+        events: {
+          'onReady': onPlayerReady,
+          'onStateChange': onPlayerStateChange,
+          'onError': onPlayerError,
+          'onPlaybackQualityChange': onPlaybackQualityChange,
+        }
+      });
+    } else {
+      console.log('loadVideoById():' + uri);
+      stopVideo();
+      player.loadVideoById({'videoId': uri});
+    }
+  }
+}
+
+// Reference: https://developers.google.com/youtube/iframe_api_reference
+var tag = document.createElement('script');
+tag.src = "//www.youtube.com/iframe_api";
+var firstScriptTag = document.getElementsByTagName('script')[0];
+firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+function onYouTubeIframeAPIReady() { ytAPIReady = true; }
+
+function onPlayerReady(event) { 
+  $('#livevideo').show();
+  $('#message').hide();
+  event.target.setVolume(100);
+  event.target.playVideo(); 
+}
+
+function onPlayerStateChange(event) {
+  console.log('YTPlayer state change: ' + event);
+  if(event.data == YT.PlayerState.PLAYING) {
+    $('#livevideo').show();
+    $('#message').hide();
+    $('#my_status').html('(放映中)');
+  }
+  else if(event.data == YT.PlayerState.BUFFERING) {
+    $('#my_status').html('(緩衝載入中)');
+  }
+  else if(event.data == YT.PlayerState.ENDED) {
+    $('#my_status').html('(播映完畢)');
+    displayText('播映完畢');
+  }
+  else if(event.data == YT.PlayerState.PAUSED) {
+    $('#my_status').html('(暫停播映)');
+  }
+}
+
+function onPlaybackQualityChange(e) {
+  console.log('onPlaybackQualityChange: ' + e.data);
+  $('#my_status').html('變更放映品質:' + e.data);
+}
+
+function onPlayerError(event) {
+  console.log('YTPlayer error: ' + event);
+}
+
+function stopVideo() {
+  $('#my_status').html('(已停止)');
+  if(player && player.stopVideo != undefined) {
+    player.stopVideo();
+  }
+  $('#livevideo').hide();
+  $('#message').show();
 }
     </script>
   </body>
