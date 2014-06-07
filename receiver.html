@@ -30,13 +30,13 @@ https://github.com/googlecast/CastHelloText-chrome
         position: absolute;
         top: 0;
         left: 0;
-    padding-top: 48px;
-    padding-left: 48px;
+        padding-top: 48px;
+        padding-left: 48px;
         color: #FF0000;
         font-weight: bold;
         font-family: Helvetica;
         font-size: 16px;
-    display: inline;
+        display: inline;
       }
       #last_update {
         font-family: Helvetica;
@@ -45,9 +45,16 @@ https://github.com/googlecast/CastHelloText-chrome
         font-weight: normal;
       }
       #logo {
-    width: 32px;
-    height: 32px;
-        vertical-align:middle;
+        width: 32px;
+        height: 32px;
+        vertical-align: middle;
+      }
+      #livevideo {
+        display: none;
+      }
+      .event-photo {
+        max-height: 480px;
+        max-width: 640px;
       }
     </style>
     <title>inLIve.TW</title>
@@ -55,6 +62,8 @@ https://github.com/googlecast/CastHelloText-chrome
   <body>
     <span id="logo_span"><img src="//googledrive.com/host/0B0MapJ-Wf54NOTJVTzNnQmRzRzA/logo-black.png" id="logo" />InLive.Tw <span id="last_update">(尚未載入)</span></span>
     <DIV id="message">inLiveTw</DIV>
+    <video id="livevideo" width="1136" height="640">
+    </video>
     <script type="text/javascript" src="//www.gstatic.com/cast/sdk/libs/receiver/2.0.0/cast_receiver.js"></script>
     <script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
     <script src="//googledrive.com/host/0B0MapJ-Wf54NOTJVTzNnQmRzRzA/moment.min.js"></script>
@@ -107,6 +116,10 @@ https://github.com/googlecast/CastHelloText-chrome
           } else if(event.data == 'cast-stop') {
             stopInterval();
             displayText("已停止播放");
+          } else if(event.data.slice(0,10) == 'cast-live:') {
+            stopInterval();
+            displayText("載入直播中...");
+            goLive(event.data.slice(10));
           } else {
             displayText('Got unknown msg: ' + event.data);
           }
@@ -157,11 +170,18 @@ function updateEvent(data) {
   eventQueue = [];
   for(var id in data) {
     var x = data[id];
+    var content = x['title'] + '<br>\n';
+    if(x['location'] != undefined)
+      content += '<span style="font-size:32px;">地點:'+x['location'] + '</span><br>\n';
+    if(x['owner'] != undefined)
+      content += '<span style="font-size:28px;">發起單位:'+x['owner'] + '</span><br>\n';
+    if(x['start'] != undefined)
+      content += '<span style="font-size:24px;">'+simpleDateFormatter(x['start'])+'</span><br>\n';
+    if(x['photo'] != undefined)
+      content += '<img class="event-photo" src="' + x['photo'] + '" /><br>\n';
     eventQueue.push({
       'dt': x['start'],
-      'content': x['title'] + '<br>\n' +
-      '<span style="font-size:32px;">'+x['location'] + '</span><br>\n' +
-      '<span style="font-size:24px;">'+simpleDateFormatter(x['start'])+'</span>'});
+      'content': content});
   }
 
   eventQueue.sort(function (a, b) { // ascendant order
@@ -204,12 +224,13 @@ function updateNews(data) {
     for(var i = 0; i < data[reporter]['post'].length; i++) {
       var x = data[reporter]['post'][i];
       if(!newsTooOld(x['datetime'])) {
+        var content = 
+          '<span style="font-size:16px;">' + simpleDateFormatter(x['datetime']) + '</span><br>\n' +
+          '<span style="font-size:24px;">' + shortMessage(x['message']) + '</span><br>\n' +
+          '<img src="'+x['picture']+'">';
         eventQueue.push({
           'dt': x['datetime'],
-          'content': 
-            '<span style="font-size:16px;">' + simpleDateFormatter(x['datetime']) + '</span><br>\n' +
-            '<span style="font-size:24px;">' + shortMessage(x['message']) + '</span><br>\n' +
-            '<img src="'+x['picture']+'">'});
+          'content': content});
       }
     }
   }
@@ -272,6 +293,10 @@ function stopInterval() {
     clearTimeout(timeoutFlag);
     timeoutFlag = null;
   }
+}
+
+function goLive(uri) {
+  // ...
 }
     </script>
   </body>
