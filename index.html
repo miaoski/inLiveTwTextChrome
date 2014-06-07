@@ -8,6 +8,30 @@ https://github.com/googlecast/CastHelloText-chrome
 <head>
 <title>InLiveTw - ChromeCast - Chrome</title>
 <style type="text/css">
+.livebroadcast { 
+  margin-bottom: 1em;
+  display: block;
+}
+.live-logo {
+  border: 0;
+  float: left;
+}
+.live-title {
+  font-weight: bold;
+  font-size: 16px;
+  font-family: verdana;
+  color: black;
+}
+.live-loc { 
+  font-weight: normal;
+  font-size: 12px;
+  font-family: helvetica;
+  color: #444;
+}
+.live-type { 
+  font-size: 12px;
+  cursor: pointer;
+}
 </style>
 <script type="text/javascript" src="//www.gstatic.com/cv/js/sender/v1/cast_sender.js"></script>
 <script type="text/javascript">
@@ -100,6 +124,67 @@ function sendMessage(message) {
       }, onError);
   }
 }
+
+function castYT(uri) {
+  var p = uri.indexOf('/embed/');
+  uri = uri.slice(p + 7, p + 18);
+  console.log('cast-live:'+uri);
+  sendMessage('cast-live:'+uri);
+}
+
+var liveBroadcastQueue = [];
+function updateLive(data) {
+  liveBroadcastQueue = [];
+  for(var i in data) {
+    var x = data[i];
+    if(x['type'] != 'youtube') {
+      var uri = '<div class="live-type">尚未支援 ' + x['type'] + ', 請用瀏覽器播放。</div>';
+    } else {
+      if(x['embed'] != undefined) {
+        var uri = '<div class="live-type" onClick="castYT(' +"'"+x['embed']+"'" + ');"><img src="chromecast-icon.png" width="24" height="24" />播放YouTube</div>';
+      } else {
+        var uri = '<div class="live-type">沒有 embed 的 YouTube 影片</div>';
+      }
+    }
+    var c = '<div class="livebroadcast">\n';
+    if(x['logo'] != undefined)
+      c += '<img class="live-logo" width="48" height="48" src="' + x['logo'] + '" />\n';
+    if(x['title'] != undefined)
+      c += '<div class="live-title">' + x['title'] + '</div>\n';
+    if(x['location'] != undefined) {
+      c += '<div class="live-loc">' + x['location'] + '</div>\n';
+    } else {
+      c += '<br />\n';
+    }
+    c += uri + '</div>\n';
+    liveBroadcastQueue.push(c);
+  }
+  if(liveBroadcastQueue.length == 0) {
+    $('#divlive').html('目前無直播頻道');
+  } else {
+    var lives = '';
+    for(var i = 0; i < liveBroadcastQueue.length; i++) {
+      lives = lives + liveBroadcastQueue[i] + '\n'; 
+    }
+    $('#divlive').html(lives);
+  }
+}
+
+function loadLive() {
+  console.log('Loading live');
+  $.ajax({
+    url: 'https://livelink.firebaseio.com/live/.json',
+    // url: 'http://localhost/cast/inLiveTwTextChrome/test-live.json',
+    type: 'GET',
+    dataType: 'json',
+    cache: false,
+    success: updateLive,
+    error: function(e) {
+      $('#live').html('載入失敗，請稍候再試。');
+      console.log('Error reading JSON: ' + str(e));
+    },
+  });
+}
 </script>
 <script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
 </head>
@@ -109,7 +194,12 @@ function sendMessage(message) {
   <input type="button" id="stopapp" value="斷開 ChromeCast" onClick="stopApp();" /><br>
   <input type="button" id="event" value="事件" onClick="sendMessage('cast-events');" /><br>
   <input type="button" id="news" value="報導"  onClick="sendMessage('cast-news');" /><br>
-  <input type="button" id="stop" value="停止輪播" onClick="sendMessage('cast-stop');" /><br>
+  <input type="button" id="stop" value="停止" onClick="sendMessage('cast-stop');" /><br>
   </div>
+  <p>直播：</p>
+  <div id="divlive">載入中...</div>
+<script language="JavaScript">
+loadLive();
+</script>
 </body>
 </html>
