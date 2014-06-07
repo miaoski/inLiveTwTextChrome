@@ -8,6 +8,11 @@ https://github.com/googlecast/CastHelloText-chrome
 <head>
 <title>InLiveTw - ChromeCast - Chrome</title>
 <style type="text/css">
+#status {
+  background-color: #CCC;
+  font-size: 12px;
+  padding-left: 2em;
+}
 .livebroadcast { 
   margin-bottom: 1em;
   display: block;
@@ -57,10 +62,12 @@ function initializeCastApi() {
 
 function onInitSuccess() {
   console.log("onInitSuccess");
+  $('#status').html('ChromeCast 初始化成功');
 }
 
 function onError(message) {
   console.log("onError: "+JSON.stringify(message));
+  $('#status').html('ChromeCast 錯誤');
 }
 
 function onSuccess(message) {
@@ -69,15 +76,18 @@ function onSuccess(message) {
 
 function onStopAppSuccess() {
   console.log('onStopAppSuccess');
+  $('#status').html('ChromeCast 已斷開');
 }
 
 function launchApp() {
   console.log("launching app...");
+  $('#status').html('ChromeCast 連接中...');
   chrome.cast.requestSession(sessionListener, onLaunchError);
 }
 
 function sessionListener(e) {
   console.log('New session ID:' + e.sessionId);
+  $('#status').html('已接上 ChromeCast.');
   session = e;
   session.addUpdateListener(sessionUpdateListener);  
   session.addMessageListener(namespace, receiverMessage);
@@ -99,9 +109,11 @@ function receiverMessage(namespace, message) {
 function receiverListener(e) {
   if( e === 'available' ) {
     console.log("receiver found");
+    $('#status').html('請連接 ChromeCast.');
   }
   else {
     console.log("receiver list empty");
+    $('#status').html('未發現 ChromeCast.');
   }
 }
 
@@ -196,6 +208,7 @@ function loadLive() {
   <input type="button" id="news" value="報導"  onClick="sendMessage('cast-news');" /><br>
   <input type="button" id="stop" value="停止" onClick="sendMessage('cast-stop');" /><br>
   </div>
+  <div id="status"></div>
   <p>直播：</p>
   <div id="divlive">載入中...</div>
 <script language="JavaScript">
