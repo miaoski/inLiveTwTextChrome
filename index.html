@@ -51,7 +51,8 @@ https://github.com/googlecast/CastHelloText-chrome
 var applicationID = 'DAA73782';
 var namespace = 'urn:x-cast:tw.idv.miaoski.inlivetw';
 var session = null;
-var currentMedia = null;
+var ytMedia = null;
+var ustreamMedia = null;
 var cur_status = ['', ''];
 
 // 
@@ -117,7 +118,7 @@ function receiverMessage(namespace, message) {
   if(message.slice(0,7) == 'YouTube') {
     console.log(message);
     var xs = message.split(':');
-    currentMedia = {
+    ytMedia = {
       'status': xs[1],
       'duration': xs[2],
       'current': xs[3],
@@ -166,19 +167,51 @@ function castYT(uri) {
   sendMessage('cast-live:'+uri);
 }
 
+// Reference: CastHelloVideo-chrome
+function castUST(uri) {
+  console.log('cast-ust:'+uri);
+  if(!session) {
+    console.log("No session for ustream");
+    return;
+  }
+  sendMessage('cast-ust');
+  var mediaInfo = new chrome.cast.media.MediaInfo(uri);
+  mediaInfo.contentType = 'application/x-mpegURL';
+  var request = new chrome.cast.media.LoadRequest(mediaInfo);
+  request.autoplay = true;
+  request.currentTime = 0;
+  session.loadMedia(request,
+    onMediaDiscovered.bind(this, 'loadMedia'),
+    onMediaError);
+}
+
+function onMediaDiscovered(how, media) {
+  console.log("new media session ID:" + media.mediaSessionId);
+  ustreamMedia = media;
+  ustreamMedia.addUpdateListener(onMediaStatusUpdate);
+}
+
+function onMediaError(e) {
+  sendMessage('cast-stop');
+  console.log("media error: ");
+  console.log(e);
+}
+
+function mediaCommandSuccessCallback(e) {
+  console.log(e);
+}
+
 var liveBroadcastQueue = [];
 function updateLive(data) {
   liveBroadcastQueue = [];
   for(var i in data) {
     var x = data[i];
-    if(x['type'] != 'youtube') {
-      var uri = '<div class="live-type">尚未支援 ' + x['type'] + ', 請用瀏覽器播放。</div>';
+    if(x['type'] == 'ustream') {
+      var uri = '<div class="live-type" onClick="castUST(' +"'"+x['stream']+"'" + ');"><img src="chromecast-icon.png" width="24" height="24" />直播ustream (測試中，很不穩定)</div>';
+    } else if(x['type'] == 'youtube' && x['embed'] != undefined) {
+      var uri = '<div class="live-type" onClick="castYT(' +"'"+x['embed']+"'" + ');"><img src="chromecast-icon.png" width="24" height="24" />播放YouTube</div>';
     } else {
-      if(x['embed'] != undefined) {
-        var uri = '<div class="live-type" onClick="castYT(' +"'"+x['embed']+"'" + ');"><img src="chromecast-icon.png" width="24" height="24" />播放YouTube</div>';
-      } else {
-        var uri = '<div class="live-type">沒有 embed 的 YouTube 影片</div>';
-      }
+      var uri = '不支援的格式:' + x['type'];
     }
     var c = '<div class="livebroadcast">\n';
     if(x['logo'] != undefined)
@@ -230,20 +263,27 @@ function toHMS(sec) {
   return h + ':' + str_m + ':' + str_s;
 }
 
-function mediaStatusUpdate() {
+function mediaStatusUpdate() {  // for YouTube embed API
   var s;
-  if(currentMedia == null)
-    return;
-  $("#progress")[0].value = parseInt(100 * currentMedia.current / currentMedia.duration);
-  $("#progress_tick").html(toHMS(currentMedia.current));
-  $("#duration").html(toHMS(currentMedia.duration));
-  if(currentMedia.status == -1) {
+  if(ytMedia == null) return;
+  $("#progress")[0].value = parseInt(100 * ytMedia.current / ytMedia.duration);
+  $("#progress_tick").html(toHMS(ytMedia.current));
+  $("#duration").html(toHMS(ytMedia.duration));
+  if(ytMedia.status == -1) {
     s = '尚未播放影片';
-  } else if(currentMedia.status < 4) {
+  } else if(ytMedia.status < 4) {
     var twstat = ['放映結束', '放映中', '暫停放映', '緩衝中'];
-    s = twstat[currentMedia.status];
+    s = twstat[ytMedia.status];
   }
   updateStatus(1, s);
+}
+
+function onMediaStatusUpdate(isAlive) { // Google's default MediaManager
+  if(isAlive) {
+    $("#progress")[0].value = parseInt(100 * ustreamMedia.currentTime / ustreamMedia.media.duration);
+    $("#progress_tick").html(toHMS(ustreamMedia.currentTime));
+    $("#duration").html(toHMS(ustreamMedia.media.duration));
+  }
 }
 
 function updateStatus(i, s) {
@@ -253,17 +293,40 @@ function updateStatus(i, s) {
 }
 
 function seekMedia(pos) {
-  if(currentMedia == null)
-    return;
-  var seekto = pos * currentMedia.duration / 100;
+  if(ytMedia == null) return;
+  var seekto = pos * ytMedia.duration / 100;
   console.log('pos='+pos+'; cast-seekto:' + seekto.toString());
   sendMessage('cast-seekto:' + seekto.toString());
 }
 
 function previewSeek(pos) {
-  var seekto = pos * currentMedia.duration / 100;
+  if(ytMedia == null) return;
+  var seekto = pos * ytMedia.duration / 100;
   $('#progress_tick').html(toHMS(seekto));
 }
+
+function castEvents() {
+  castStop();
+  sendMessage('cast-events');
+}
+
+function castNews() {
+  castStop();
+  sendMessage('cast-news');
+}
+
+function castStop() {
+  sendMessage('cast-stop');
+  if(ustreamMedia != null) {
+    ustreamMedia.stop(null,
+      mediaCommandSuccessCallback.bind(this,"stopped " + ustreamMedia.sessionId),
+      onError);
+    ustreamMedia = null;
+  } else if(ytMedia != null) {
+    ytMedia = null;
+  }
+}
+
 </script>
 <script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
 </head>
@@ -271,9 +334,9 @@ function previewSeek(pos) {
   <div>
   <input type="button" id="launch" value="連接 ChromeCast" onClick="launchApp();" /><br>
   <input type="button" id="stopapp" value="斷開 ChromeCast" onClick="stopApp();" /><br>
-  <input type="button" id="event" value="事件" onClick="sendMessage('cast-events');" /><br>
-  <input type="button" id="news" value="報導"  onClick="sendMessage('cast-news');" /><br>
-  <input type="button" id="stop" value="停止" onClick="sendMessage('cast-stop');" /><br>
+  <input type="button" id="event" value="事件" onClick="castEvents();" /><br>
+  <input type="button" id="news" value="報導"  onClick="castNews();" /><br>
+  <input type="button" id="stop" value="停止" onClick="castStop();" /><br>
   </div>
   <div id="status" class="status">&nbsp;</div>
   <p>直播：

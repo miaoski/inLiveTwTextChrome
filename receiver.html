@@ -74,7 +74,8 @@ https://github.com/googlecast/CastHelloText-chrome
     <script type="text/javascript">
       var GLOBALSTATUS = '';
       window.onload = function() {
-        cast.receiver.logger.setLevelValue(0);
+        // cast.receiver.logger.setLevelValue(0);
+        cast.receiver.logger.setLevelValue(cast.receiver.LoggerLevel.DEBUG);
         window.castReceiverManager = cast.receiver.CastReceiverManager.getInstance();
         console.log('Starting Receiver Manager');
         
@@ -126,6 +127,11 @@ https://github.com/googlecast/CastHelloText-chrome
             stopVideo();
             displayText("已停止播放");
             GLOBALSTATUS = 'STOP';
+          } else if(event.data == 'cast-ust') {
+            stopInterval();
+            stopVideo();
+            GLOBALSTATUS = 'USTREAM';
+            showVideoDiv();
           } else if(event.data.slice(0,10) == 'cast-live:') {
             stopInterval();
             displayText("載入直播中...");
@@ -139,7 +145,7 @@ https://github.com/googlecast/CastHelloText-chrome
           window.messageBus.send(event.senderId, event.data);
         }
 
-        window.mediaElement = document.getElementById('livevideo');
+        window.mediaElement = document.getElementById('ustream');
         window.mediaManager = new cast.receiver.MediaManager(window.mediaElement);
 
         // initialize the CastReceiverManager with an application status message
@@ -164,6 +170,7 @@ var senderId = null;
 function displayText(text) {
   $('#message').show();
   $('#livevideo').hide();
+  $('#ustream').hide();
   document.getElementById("message").innerHTML=text;
   window.castReceiverManager.setApplicationState(text);
 }
@@ -349,6 +356,7 @@ function onYouTubeIframeAPIReady() { ytAPIReady = true; }
 function onPlayerReady(event) { 
   $('#livevideo').show();
   $('#message').hide();
+  $('#ustream').hide();
   event.target.setVolume(100);
   event.target.playVideo(); 
 }
@@ -406,7 +414,16 @@ function stopVideo() {
   }
   $('#livevideo').hide();
   $('#message').show();
+  $('#ustream').hide();
+}
+
+function showVideoDiv() {
+  $('#ustream').show();
+  $('#livevideo').hide();
+  $('#message').hide();
+  $('#my_status').html('直播中');
 }
     </script>
+    <video id="ustream"></video>
   </body>
 </html>
