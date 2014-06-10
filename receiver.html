@@ -72,6 +72,7 @@ https://github.com/googlecast/CastHelloText-chrome
     <script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
     <script src="//googledrive.com/host/0B0MapJ-Wf54NOTJVTzNnQmRzRzA/moment.min.js"></script>
     <script type="text/javascript">
+      var GLOBALSTATUS = '';
       window.onload = function() {
         cast.receiver.logger.setLevelValue(0);
         window.castReceiverManager = cast.receiver.CastReceiverManager.getInstance();
@@ -115,16 +116,20 @@ https://github.com/googlecast/CastHelloText-chrome
           if(event.data == 'cast-news') {
             stopInterval();
             loadNews();
+            GLOBALSTATUS = 'NEWS';
           } else if(event.data == 'cast-events') {
             stopInterval();
             loadEvents();
+            GLOBALSTATUS = 'EVENTS';
           } else if(event.data == 'cast-stop') {
             stopInterval();
             stopVideo();
             displayText("已停止播放");
+            GLOBALSTATUS = 'STOP';
           } else if(event.data.slice(0,10) == 'cast-live:') {
             stopInterval();
             displayText("載入直播中...");
+            GLOBALSTATUS = 'YOUTUBE';
             goLive(event.data.slice(10));
           } else if(event.data.slice(0,12) == 'cast-seekto:') {
             ytSeekTo(parseInt(event.data.slice(12)));
@@ -388,8 +393,10 @@ function onPlayerError(event) {
 }
 
 function ytSeekTo(sec) {
-  console.log('player.seekTo():' + sec);
-  player.seekTo(sec);
+  if(GLOBALSTATUS == 'YOUTUBE') {
+    console.log('player.seekTo():' + sec);
+    player.seekTo(sec);
+  }
 }
 
 function stopVideo() {
