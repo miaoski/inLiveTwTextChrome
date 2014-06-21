@@ -7,6 +7,7 @@ https://github.com/googlecast/CastHelloText-chrome
 <html>
 <head>
 <title>InLiveTw - ChromeCast - Chrome</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style type="text/css">
 .status {
   background-color: #CCC;
@@ -45,7 +46,13 @@ https://github.com/googlecast/CastHelloText-chrome
   font-size: 12px;
   color: #444;
 }
+#progress {
+  width: 100%;
+}
 </style>
+<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css" media="screen">
+<script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
+<script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
 <script type="text/javascript" src="//www.gstatic.com/cv/js/sender/v1/cast_sender.js"></script>
 <script type="text/javascript">
 var applicationID = 'DAA73782';
@@ -328,21 +335,27 @@ function castStop() {
 }
 
 </script>
-<script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
 </head>
 <body>
   <div>
-  <input type="button" id="launch" value="連接 ChromeCast" onClick="launchApp();" /><br>
-  <input type="button" id="stopapp" value="斷開 ChromeCast" onClick="stopApp();" /><br>
-  <input type="button" id="event" value="事件" onClick="castEvents();" /><br>
-  <input type="button" id="news" value="報導"  onClick="castNews();" /><br>
-  <input type="button" id="stop" value="停止" onClick="castStop();" /><br>
+  <button id="launch"  type="button" class="btn btn-success" onClick="launchApp();">連接 Chromecast</button>
+  <button id="stopapp" type="button" class="btn btn-primary" onClick="castEvents();">事件</button>
+  <button id="news"    type="button" class="btn btn-primary" onClick="castNews();">報導</button>
+  <button id="stop"    type="button" class="btn btn-warning" onClick="castStop();">停止</button>
+  <button id="event"   type="button" class="btn btn-danger" onClick="stopApp();">斷開 Chromecast</button>
   </div>
-  <div id="status" class="status">&nbsp;</div>
-  <p>直播：
+  <br />
+  <div id="status" class="alert alert-info">&nbsp;</div>
+  <div class="row">
+    <div class="col-md-1">直播：</div>
+    <div class="col-md-7">
     <input id="progress" type="range" min="1" max="100" value="1" step="1" onMouseUp="seekMedia(this.value);" onInput="previewSeek(this.value);">
+    </div>
+    <div class="col-md-4">
     <span id="progress_tick"></span> / <span id="duration"></span>
-  </p>
+    </div>
+  </div>
+  <br />
   <div id="divlive">載入中...</div>
 <script language="JavaScript">
 loadLive();
