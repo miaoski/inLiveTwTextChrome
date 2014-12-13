@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>InLiveTw - ChromeCast - Chrome</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.status {
+  background-color: #CCC;
+  font-size: 12px;
+  padding-left: 2em;
+}
+.livebroadcast { 
+  margin-bottom: 1em;
+  display: block;
+}
+.live-logo {
+  border: 0;
+  float: left;
+}
+.live-title {
+  font-weight: bold;
+  font-size: 16px;
+  font-family: verdana;
+  color: black;
+}
+.live-loc { 
+  font-weight: normal;
+  font-size: 12px;
+  font-family: helvetica;
+  color: #444;
+}
+.live-type { 
+  font-size: 12px;
+  cursor: pointer;
+}
+#progress_tick {
+  font-size: 12px;
+  color: #444;
+}
+#duration {
+  font-size: 12px;
+  color: #444;
+}
+#progress {
+  width: 100%;
+}
+</style>
+<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css" media="screen">
+<script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
+<script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+</head>
+<body onload="youtube('')">
+  <div class="row">
+    <div class="col-md-9">
+      <div id="livevideo"></div>
+      <iframe id="ustream" width="720" height="437" scrolling="no" frameborder="0" style="border: 0px none transparent; display: none;"></iframe>
+    </div>
+    <div class="col-md-2">
+      <button onClick="youtube('IIRYMAiU7hI');">Youtube-1</button><br />
+      <button onClick="youtube('H1htUUfwUYI');">Youtube-2</button><br />
+      <button onClick="youtube('uIKZbzwZDZM');">Youtube-3</button><br />
+      <button onClick="ustream('FIXME');">UStream-1</button><br />
+    </div>
+  </div>
+<script language="JavaScript">
+<!--
+var ytAPIReady = false;
+var player = null;                  // YouTube player object
+
+// Reference: https://developers.google.com/youtube/iframe_api_reference
+var tag = document.createElement('script');
+tag.src = "//www.youtube.com/iframe_api";
+var firstScriptTag = document.getElementsByTagName('script')[0];
+firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+function onYouTubeIframeAPIReady() { ytAPIReady = true; }
+
+uri = 'IIRYMAiU7hI';       // default
+
+function stopVideo() {
+  if(player && player.stopVideo != undefined) {
+    player.stopVideo();
+  }
+}
+
+function onPlayerReady(event) { 
+  $('#livevideo').show();
+  event.target.setVolume(100);
+  event.target.playVideo(); 
+}
+
+function onPlayerStateChange(event) {
+  console.log('YTPlayer state change:' + event.data);
+  if(event.data == YT.PlayerState.PLAYING) {
+  } else if(event.data == YT.PlayerState.BUFFERING) {
+  } else if(event.data == YT.PlayerState.ENDED) {
+  } else if(event.data == YT.PlayerState.PAUSED) {
+  }
+  updatePlayerStatus();
+}
+
+function updatePlayerStatus() {
+}
+
+function onPlayerError(event) {
+  console.log('YTPlayer error: ' + event.data);
+}
+
+function onPlaybackQualityChange(e) {
+  console.log('onPlaybackQualityChange: ' + e.data);
+}
+
+function youtube(uri) {
+  $('#ustream').hide();
+  $('#livevideo').show();
+  if(uri == '') {
+    $('#livevideo').html('<h1>請點選右邊的按鈕。</h1>');
+    return;
+  }
+  if(!ytAPIReady) {
+    $('#livevideo').text('載入中，請稍候。');
+  } else {
+    if(player == null) {
+      console.log('new YT.Player():' + uri);
+      player = new YT.Player('livevideo', {
+        height: '480',
+        width: '853',     // FIXME: Default 16:9, but not sure
+        videoId: uri,
+        playerVars: { 'controls': 0, 'origin': 'googledrive.com' },
+        events: {
+          'onReady': onPlayerReady,
+          'onStateChange': onPlayerStateChange,
+          'onError': onPlayerError,
+          'onPlaybackQualityChange': onPlaybackQualityChange,
+        }
+      });
+    } else {
+      console.log('loadVideoById():' + uri);
+      stopVideo();
+      player.loadVideoById({'videoId': uri});
+    }
+  }
+}
+
+function ustream(uri) {
+  stopVideo();
+  $('#livevideo').hide();
+  $('#ustream').show();
+  $('#ustream').attr('src', 'http://www.ustream.tv/embed/14879599?v=3&amp;wmode=direct&autoplay=true&quality=best');
+}
+
+// -->
+</script>
+</body>
+</html>
